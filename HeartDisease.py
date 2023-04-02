@@ -323,7 +323,7 @@ def correlation_matrix(data):
     plt.title('Correlation Matrix')
     plt.show()
 
-def feature_importance(data, k=5):
+def feature_importance(data, k):
     """ 
     Use SelectKBest feature selection technique to identify the k most important
     features that are highly correlated with the target variable.
@@ -357,7 +357,7 @@ def feature_importance(data, k=5):
     print(f'Top {k} features:')
     print(feature_scores.head(k))
 
-def clustering_analysis(data, n_clusters=3):
+def clustering_analysis(data, n_clusters):
     """
     Perform clustering analysis on the given data to group similar patients based on their features.
     """
@@ -384,8 +384,7 @@ def clustering_analysis(data, n_clusters=3):
         cluster_data.loc[cluster_data['target'] == 0, 'target'] = 'Normal'
         print(f"Cluster {i} - Number of patients: {len(cluster_data)}")
         print(cluster_data['target'].value_counts())
-        print()
-
+        print()          
 
 # Main program
 if __name__ == '__main__':
