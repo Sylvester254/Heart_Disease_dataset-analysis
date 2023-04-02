@@ -24,8 +24,10 @@ def clean_data(data):
         data.drop_duplicates(inplace=True)
     # Check if data is already clean
     if data.isnull().sum().sum() == 0 and data.duplicated().sum() == 0 and \
-       data['sex'].isin(['male', 'female']).all() and \
-       data['chest pain type'].isin(['typical angina', 'atypical angina', 'non-anginal pain', 'asymptomatic']).all():
+        data['sex'].isin(['male', 'female']).all() and \
+        data['chest pain type'].isin(['typical angina', 'atypical angina', 'non-anginal pain', 'asymptomatic']).all() and \
+        data['target'].isin(['Heart risk', 'Normal']).all() and \
+        data['resting ecg'].isin(['Normal', 'Abnormality in ST-T wave', 'Left ventricular hypertrophy']).all():
         print("Data is already clean.")
     else:
         # Feature conversions
@@ -37,12 +39,17 @@ def clean_data(data):
         data.loc[data['chest pain type'] == 3, 'chest pain type'] = 'non-anginal pain'
         data.loc[data['chest pain type'] == 4, 'chest pain type'] = 'asymptomatic'
         
+        data.loc[data['resting ecg'] == 0, 'resting ecg'] = 'Normal'
+        data.loc[data['resting ecg'] == 1, 'resting ecg'] = 'Abnormality in ST-T wave'
+        data.loc[data['resting ecg'] == 2, 'resting ecg'] = 'Left ventricular hypertrophy'
+        
+        data.loc[data['target'] == 1, 'target'] = 'Heart risk'
+        data.loc[data['target'] == 0, 'target'] = 'Normal'
+        
         print("Data cleaning complete.")
 
     # Assign cleaned data to a new variable
     cleaned_data = data
-    print("First 5 rows of the cleaned data:")
-    print(cleaned_data.head())
     
     return cleaned_data
 
@@ -153,6 +160,7 @@ def analyze_blood_pressure_and_cholesterol(cleaned_data):
     no_heart_disease_chol_mean = cleaned_data[cleaned_data['target'] == 0]['cholesterol'].mean()
 
     # Print the mean values
+    print('\n')
     print("Mean blood pressure for patients with heart disease:", heart_disease_bp_mean)
     print("Mean blood pressure for patients without heart disease:", no_heart_disease_bp_mean)
     print("Mean cholesterol for patients with heart disease:", heart_disease_chol_mean)
@@ -164,16 +172,56 @@ def analyze_blood_pressure_and_cholesterol(cleaned_data):
     no_heart_disease_bp_std = cleaned_data[cleaned_data['target'] == 0]['resting bp s'].std()
     no_heart_disease_chol_std = cleaned_data[cleaned_data['target'] == 0]['cholesterol'].std()
 
+    print('\n')
     # Print the standard deviation
     print("Standard deviation of blood pressure for patients with heart disease:", heart_disease_bp_std)
     print("Standard deviation of blood pressure for patients without heart disease:", no_heart_disease_bp_std)
     print("Standard deviation of cholesterol for patients with heart disease:", heart_disease_chol_std)
     print("Standard deviation of cholesterol for patients without heart disease:", no_heart_disease_chol_std)
     
+    print('\n')
     # Analyze the correlation between blood pressure, cholesterol, and heart disease
     correlation_matrix = cleaned_data[['resting bp s', 'cholesterol', 'target']].corr()
     print("Correlation between resting blood pressure, cholesterol, and heart disease:")
     print(correlation_matrix)
+
+def analyze_fbs_distribution(cleaned_data):
+    """
+    Analyze the distribution of fasting blood sugar levels in relation to heart disease.
+    """
+    fbs_counts = cleaned_data['fasting blood sugar'].value_counts()
+    fbs_percentages = round(fbs_counts / len(cleaned_data) * 100, 2)
+
+    fbs_heart_disease_counts = cleaned_data.groupby('target')['fasting blood sugar'].value_counts()
+    fbs_heart_disease_percentages = round(fbs_heart_disease_counts / len(cleaned_data) * 100, 2)
+
+    print("Fasting Blood Sugar distribution:")
+    print("------------------------------")
+    print(f"Total count:\n{fbs_counts}\n")
+    print(f"Percentage of total dataset:\n{fbs_percentages}\n")
+    print("------------------------------")
+    print(f"Counts by heart disease status:\n{fbs_heart_disease_counts}\n")
+    print(f"Percentages by heart disease status:\n{fbs_heart_disease_percentages}")
+
+def analyze_ecg_results(cleaned_data):
+    """
+    Analyze the Resting electrocardiogram results of patients in the cleaned_dataset.
+    """
+    ecg = cleaned_data['resting ecg']
+    ecg_counts = ecg.value_counts()
+    ecg_labels = {'Normal': 0, 'Abnormality in ST-T wave': 1, 'Left ventricular hypertrophy': 2}
+    # ecg_counts.rename(index=ecg_labels, inplace=True)
+    
+    print("\nResting electrocardiogram distribution:")
+    print(ecg_counts)
+    
+    ecg_by_target = cleaned_data.groupby(['resting ecg', 'target']).size().reset_index(name='count')
+    ecg_by_target['Resting ecg'] = ecg_by_target['resting ecg'].map(ecg_labels)
+    ecg_by_target['resting ecg'] = ecg_by_target['resting ecg'].map(ecg)
+    ecg_by_target['target'] = ecg_by_target['target']
+    
+    print("\nResting electrocardiogram by target:")
+    print(ecg_by_target)
 
 
 # Main program
@@ -195,17 +243,22 @@ if __name__ == '__main__':
         if choice == '1':
             print("\nPerforming data cleaning...")
             cleaned_data = clean_data(data)
+            print("First 5 rows of the cleaned data:")
+            print(cleaned_data.head())
         elif choice == '2':
             print("\nExploring the data...")
             cleaned_data = clean_data(data)
             while True:
-                print("\nWhat would you like to explore?")
+                print("\nWhat would you like to Explore/Analyze?")
                 print("\t1. Age distribution")
                 print("\t2. Gender distribution")
                 print("\t3. Chest Pain Types")
                 print("\t4. Blood Pressure Analysis")
                 print("\t5. Blood pressure and Cholesterol")
-                print("\t6. Back to main")
+                print("\t6. Fasting blood sugar analysis")
+                print("\t7. Resting electrocardiogram results")
+                
+                print("\t8. Back to main")
                 
                 explore_choice = input("Enter your choice: ")
                 
@@ -225,6 +278,12 @@ if __name__ == '__main__':
                     print('Analyzing blood pressure and cholesterol...')
                     analyze_blood_pressure_and_cholesterol(cleaned_data)
                 elif explore_choice == '6':
+                    print('Analyzing Fasting blood sugar...')
+                    analyze_fbs_distribution(cleaned_data)
+                elif explore_choice == '7':
+                    print('Analyzing ecg results...')
+                    analyze_ecg_results(cleaned_data)
+                elif explore_choice == '8':
                     print("Returning to main menu...")
                     break
                 else:
