@@ -23,11 +23,14 @@ def clean_data(data):
     if data.duplicated().sum() > 0:
         data.drop_duplicates(inplace=True)
     # Check if data is already clean
-    if data.isnull().sum().sum() == 0 and data.duplicated().sum() == 0 and \
-        data['sex'].isin(['male', 'female']).all() and \
-        data['chest pain type'].isin(['typical angina', 'atypical angina', 'non-anginal pain', 'asymptomatic']).all() and \
-        data['target'].isin(['Heart risk', 'Normal']).all() and \
-        data['resting ecg'].isin(['Normal', 'Abnormality in ST-T wave', 'Left ventricular hypertrophy']).all():
+    if (data.isnull().sum().sum() == 0
+        and data.duplicated().sum() == 0
+        and data['sex'].isin(['male', 'female']).all()
+        and data['chest pain type'].isin(['typical angina', 'atypical angina', 'non-anginal pain', 'asymptomatic']).all()
+        and data['resting ecg'].isin(['normal', 'ST-T wave abnormality', 'left ventricular hypertrophy']).all()
+        and data['exercise angina'].isin(['no', 'yes']).all()
+        and data['target'].isin(['Normal', 'Heart risk']).all()
+        and data["ST slope"].isin(["Normal", "Upsloping", "Flat", "Downsloping"]).all()):
         print("Data is already clean.")
     else:
         # Feature conversions
@@ -39,13 +42,22 @@ def clean_data(data):
         data.loc[data['chest pain type'] == 3, 'chest pain type'] = 'non-anginal pain'
         data.loc[data['chest pain type'] == 4, 'chest pain type'] = 'asymptomatic'
         
-        data.loc[data['resting ecg'] == 0, 'resting ecg'] = 'Normal'
-        data.loc[data['resting ecg'] == 1, 'resting ecg'] = 'Abnormality in ST-T wave'
-        data.loc[data['resting ecg'] == 2, 'resting ecg'] = 'Left ventricular hypertrophy'
+        data["resting ecg"] = data.loc[:, "resting ecg"].replace({0: "Normal",
+                                                                1: "Abnormality in ST-T wave",
+                                                                2: "Left ventricular hypertrophy"})
         
-        data.loc[data['target'] == 1, 'target'] = 'Heart risk'
-        data.loc[data['target'] == 0, 'target'] = 'Normal'
+        data["exercise angina"] = data.loc[:, "exercise angina"].replace({0: "No",
+                                                                        1: "Yes"})
         
+        data["ST slope"] = data.loc[:, "ST slope"].replace({0: "Normal",
+                                                        1: "Upsloping",
+                                                        2: "Flat",
+                                                        3: "Downsloping"})
+        
+        # Convert target variable
+        data["target"] = data.loc[:, "target"].replace({0: "Normal",
+                                                        1: "Heart risk"})
+            
         print("Data cleaning complete.")
 
     # Assign cleaned data to a new variable
@@ -223,6 +235,76 @@ def analyze_ecg_results(cleaned_data):
     print("\nResting electrocardiogram by target:")
     print(ecg_by_target)
 
+def analyze_max_heart_rate(cleaned_data):
+    """
+    Analyze the maximum heart rate achieved by patients in the cleaned_dataset.
+    """
+    # Summary statistics
+    print("Maximum heart rate summary statistics:")
+    print(cleaned_data['max heart rate'].describe())
+    
+    # Distribution of maximum heart rate
+    print("\nMaximum heart rate distribution:")
+    print(cleaned_data['max heart rate'].value_counts().sort_index())
+    
+    # Maximum heart rate by target
+    max_hr_by_target = cleaned_data.groupby(['max heart rate', 'target']).size().reset_index(name='count')
+    max_hr_by_target['target'] = max_hr_by_target['target']
+    
+    print("\nMaximum heart rate by target:")
+    print(max_hr_by_target)
+
+def analyze_exercise_angina(cleaned_data):
+    """
+    Analyze the incidence of exercise-induced angina in patients.
+    """
+    angina_counts = cleaned_data['exercise angina'].value_counts()
+    
+    print("Exercise-induced angina distribution:")
+    print(angina_counts)
+    
+    angina_by_target = cleaned_data.groupby(['exercise angina', 'target']).size().reset_index(name='count')
+    angina_by_target['exercise angina'] = angina_by_target['exercise angina'].str.capitalize()
+    angina_by_target['target'] = angina_by_target['target'].str.capitalize()
+    
+    print("\nExercise-induced angina by target:")
+    print(angina_by_target)
+
+def analyze_oldpeak(cleaned_data):
+    """
+    Analyze the Exercise induced ST-depression in comparison with the state of rest of patients in the cleaned_dataset.
+    """
+    oldpeak_by_target = cleaned_data.groupby('target')['oldpeak'].mean()
+    
+    print("\nAverage exercise induced ST-depression by target:")
+    print(oldpeak_by_target)
+    
+    oldpeak_counts = cleaned_data['oldpeak'].value_counts()
+    oldpeak_counts.sort_index(inplace=True)
+    
+    print("\nExercise induced ST-depression distribution:")
+    print(oldpeak_counts)
+    
+    oldpeak_by_ecg = cleaned_data.groupby(['resting ecg', 'exercise angina'])['oldpeak'].mean()
+    
+    print("\nAverage exercise induced ST-depression by resting ECG and exercise angina:")
+    print(oldpeak_by_ecg)
+
+def analyze_st_slope(cleaned_data):
+    """
+    Analyze the ST slope results of patients in the cleaned_dataset.
+    """
+    st_slope_counts = cleaned_data['ST slope'].value_counts()
+    
+    print("ST slope distribution:")
+    print(st_slope_counts)
+    
+    st_slope_by_target = cleaned_data.groupby(['ST slope', 'target']).size().reset_index(name='count')
+    st_slope_by_target['target'] = st_slope_by_target['target']
+    
+    print("\nST slope by target:")
+    print(st_slope_by_target)
+
 
 # Main program
 if __name__ == '__main__':
@@ -254,11 +336,14 @@ if __name__ == '__main__':
                 print("\t2. Gender distribution")
                 print("\t3. Chest Pain Types")
                 print("\t4. Blood Pressure Analysis")
-                print("\t5. Blood pressure and Cholesterol")
-                print("\t6. Fasting blood sugar analysis")
-                print("\t7. Resting electrocardiogram results")
-                
-                print("\t8. Back to main")
+                print("\t5. Blood Pressure and Cholesterol")
+                print("\t6. Fasting Blood Sugar Analysis")
+                print("\t7. Resting Electrocardiogram Results")
+                print("\t8. Heart Rate Analysis")
+                print("\t9. Exercise Angina Analysis")
+                print("\t10. Oldpeak Analysis")
+                print("\t11. Analyze ST slope")
+                print("\t12. Back to main")
                 
                 explore_choice = input("Enter your choice: ")
                 
@@ -284,6 +369,18 @@ if __name__ == '__main__':
                     print('Analyzing ecg results...')
                     analyze_ecg_results(cleaned_data)
                 elif explore_choice == '8':
+                    print('Analyzing max heart rate...')
+                    analyze_max_heart_rate(cleaned_data)
+                elif explore_choice == '9':
+                    print('Analyzing exercise angina...')
+                    analyze_exercise_angina(cleaned_data)
+                elif explore_choice == '10':
+                    print('Analyzing Oldpeak...')
+                    analyze_oldpeak(cleaned_data)
+                elif explore_choice == '11':
+                    print("Analyzing the ST slope...")
+                    analyze_st_slope(cleaned_data)
+                elif explore_choice == '12':
                     print("Returning to main menu...")
                     break
                 else:
