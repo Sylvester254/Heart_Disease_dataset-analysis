@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 
 def load_dataset(file_path):
@@ -305,6 +310,82 @@ def analyze_st_slope(cleaned_data):
     print("\nST slope by target:")
     print(st_slope_by_target)
 
+def correlation_matrix(data):
+    """ 
+    Create a correlation matrix to show the correlation coefficients
+    between all pairs of variables in the dataset.
+    """
+    corr = data.corr(numeric_only=True)
+
+    # Plot the correlation matrix
+    plt.figure(figsize=(12,10))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    plt.title('Correlation Matrix')
+    plt.show()
+
+def feature_importance(data, k=5):
+    """ 
+    Use SelectKBest feature selection technique to identify the k most important
+    features that are highly correlated with the target variable.
+    """
+    X = data.iloc[:, :-1]
+    y = data.iloc[:, -1]
+
+    # Min-Max Scaling
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)
+    X = pd.DataFrame(X, columns=data.columns[:-1])
+
+
+    if k > len(X.columns):
+        print(f"Error: The maximum value for k is {len(X.columns)}")
+        return
+    # Use SelectKBest to select the k best features
+    best_features = SelectKBest(score_func=chi2, k=k).fit(X, y)
+
+    # Get the scores and p-values for each feature
+    scores = best_features.scores_
+    pvalues = best_features.pvalues_
+
+    # Create a dataframe of feature scores and p-values
+    feature_scores = pd.DataFrame({'Feature': X.columns, 'Score': scores, 'P-value': pvalues})
+
+    # Sort the dataframe by score in descending order
+    feature_scores = feature_scores.sort_values(by='Score', ascending=False)
+
+    # Print the top k features with their scores and p-values
+    print(f'Top {k} features:')
+    print(feature_scores.head(k))
+
+def clustering_analysis(data, n_clusters=3):
+    """
+    Perform clustering analysis on the given data to group similar patients based on their features.
+    """
+    # Separate features and target variable
+    X = data.iloc[:, :-1]
+    y = data.iloc[:, -1]
+
+    # Scale the data using StandardScaler
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', n_init=10, random_state=42)
+    clusters = kmeans.fit_predict(X_scaled)
+
+    # Add the cluster labels to the original dataset
+    data_with_clusters = data.copy()
+    data_with_clusters['Cluster'] = clusters
+
+    # Analyze the target variable for each cluster separately
+    for i in range(n_clusters):
+        cluster_data = data_with_clusters[data_with_clusters['Cluster'] == i]
+        cluster_data.loc[cluster_data['target'] == 1, 'target'] = 'Heart risk'
+        cluster_data.loc[cluster_data['target'] == 0, 'target'] = 'Normal'
+        print(f"Cluster {i} - Number of patients: {len(cluster_data)}")
+        print(cluster_data['target'].value_counts())
+        print()
+
 
 # Main program
 if __name__ == '__main__':
@@ -318,9 +399,10 @@ if __name__ == '__main__':
         print("\nWhat would you like to do?")
         print("\t1. Clean the data")
         print("\t2. Explore the data")
-        print("\t3. Exit")
+        print("\t3. Advanced Analysis")
+        print("\tQ. Exit")
 
-        choice = input("Enter your choice (1, 2, or 3): ")
+        choice = input("Enter your choice (1, 2, 3 or Q): ")
 
         if choice == '1':
             print("\nPerforming data cleaning...")
@@ -343,7 +425,7 @@ if __name__ == '__main__':
                 print("\t9. Exercise Angina Analysis")
                 print("\t10. Oldpeak Analysis")
                 print("\t11. Analyze ST slope")
-                print("\t12. Back to main")
+                print("\t12. Back to Main")
                 
                 explore_choice = input("Enter your choice: ")
                 
@@ -386,7 +468,35 @@ if __name__ == '__main__':
                 else:
                     print("Invalid choice.")
         elif choice == '3':
+            print("\nAdvanced Analysis on the data...")
+            while True:
+                print("\nWhat would you like to Analyze?")
+                print("\t1. Correlation Matrix")
+                print("\t2. Most Important Features")
+                print("\t3. Clustering")
+                print("\t4. Back to Main")
+                
+                advanced_choice = input("Enter your choice: ")
+                
+                if advanced_choice == '1':
+                    print("\n\t\tAnalyzing correlation matrix...")
+                    correlation_matrix(data)
+                elif advanced_choice == '2':
+                    k = int(input("Enter the number of features to select: "))
+                    print(f"\n\t\tAnalyzing the {k} most important features...")
+                    feature_importance(data, k)
+                elif advanced_choice == '3':
+                    print("\n\t\tPerforming clustering analysis...")
+                    n_clusters = int(input("Enter the number of clusters to create: "))
+                    clustering_analysis(data, n_clusters)
+                elif advanced_choice == '4':
+                    print("Returning to main menu...")
+                    break
+                else:
+                    print("Invalid choice.")
+                
+        elif choice == 'Q' or 'q':
             print("Exiting the program...")
             break
         else:
-            print("Invalid choice. Please enter 1, 2, or 3.")
+            print("Invalid choice. Please enter 1, 2, 3 or Q.")
