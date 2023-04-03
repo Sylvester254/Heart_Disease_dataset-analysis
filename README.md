@@ -35,3 +35,6 @@ To go back to the main menu, choose option 4.
 Exiting the program:
 
 > Choose option Q or q to exit the program.
+
+## NOTE: 
+Advanced analysis uses numerical data therefore don't perform step 1 in the main menu(Clean the data) as it performs feature conversions on some columns by changing them to strings. Otherwise you'll encounter ValueError. 

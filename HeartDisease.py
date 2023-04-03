@@ -79,7 +79,7 @@ def analyze_age_distribution(cleaned_data):
     print('Age:\tNumber of patients:')
     print(age_counts)
     
-    age_counts_heart_risk = cleaned_data[cleaned_data['target'] == 1]['age'].value_counts()
+    age_counts_heart_risk = cleaned_data[cleaned_data['target'] == "Heart risk"]['age'].value_counts()
     print("\nAge distribution for patients with heart risk:")
     print('Age:\tNumber of patients:')
     print(age_counts_heart_risk)
@@ -94,10 +94,10 @@ def analyze_age_distribution(cleaned_data):
     print(f"Average age: {avg_age:.2f}")
     print(f"Standard deviation of age: {std_age:.2f}")
     
-    max_age_heart_risk = cleaned_data[cleaned_data['target'] == 1]['age'].max()
-    min_age_heart_risk = cleaned_data[cleaned_data['target'] == 1]['age'].min()
-    avg_age_heart_risk = cleaned_data[cleaned_data['target'] == 1]['age'].mean()
-    std_age_heart_risk = cleaned_data[cleaned_data['target'] == 1]['age'].std()
+    max_age_heart_risk = cleaned_data[cleaned_data['target'] == "Heart risk"]['age'].max()
+    min_age_heart_risk = cleaned_data[cleaned_data['target'] == "Heart risk"]['age'].min()
+    avg_age_heart_risk = cleaned_data[cleaned_data['target'] == "Heart risk"]['age'].mean()
+    std_age_heart_risk = cleaned_data[cleaned_data['target'] == "Heart risk"]['age'].std()
     print("\nAge statistics for patients with heart risk:")
     print(f"Max age: {max_age_heart_risk}")
     print(f"Min age: {min_age_heart_risk}")
@@ -147,7 +147,7 @@ def analyze_chest_pain(cleaned_data):
     print('\n')
     # Calculate the percentage of patients with heart risk for each chest pain type
     for chest_pain in cleaned_data['chest pain type'].unique():
-        risk_count = len(cleaned_data[(cleaned_data['chest pain type'] == chest_pain) & (cleaned_data['target'] == 1)])
+        risk_count = len(cleaned_data[(cleaned_data['chest pain type'] == chest_pain) & (cleaned_data['target'] == "Heart risk")])
         total_count = len(cleaned_data[cleaned_data['chest pain type'] == chest_pain])
         risk_percentage = (risk_count / total_count) * 100
         print(f"Percentage of patients with {chest_pain} chest pain type at risk of heart disease: {risk_percentage:.2f}%")
@@ -171,10 +171,10 @@ def analyze_blood_pressure_and_cholesterol(cleaned_data):
     Analyze the levels of blood pressure and cholesterol in the cleaned dataset.
     """
     # Get the mean values of blood pressure and cholesterol for patients with and without heart disease
-    heart_disease_bp_mean = cleaned_data[cleaned_data['target'] == 1]['resting bp s'].mean()
-    heart_disease_chol_mean = cleaned_data[cleaned_data['target'] == 1]['cholesterol'].mean()
-    no_heart_disease_bp_mean = cleaned_data[cleaned_data['target'] == 0]['resting bp s'].mean()
-    no_heart_disease_chol_mean = cleaned_data[cleaned_data['target'] == 0]['cholesterol'].mean()
+    heart_disease_bp_mean = cleaned_data[cleaned_data['target'] == "Heart risk"]['resting bp s'].mean()
+    heart_disease_chol_mean = cleaned_data[cleaned_data['target'] == "Heart risk"]['cholesterol'].mean()
+    no_heart_disease_bp_mean = cleaned_data[cleaned_data['target'] == "Normal"]['resting bp s'].mean()
+    no_heart_disease_chol_mean = cleaned_data[cleaned_data['target'] == "Normal"]['cholesterol'].mean()
 
     # Print the mean values
     print('\n')
@@ -184,10 +184,10 @@ def analyze_blood_pressure_and_cholesterol(cleaned_data):
     print("Mean cholesterol for patients without heart disease:", no_heart_disease_chol_mean)
 
     # Get the standard deviation of blood pressure and cholesterol for patients with and without heart disease
-    heart_disease_bp_std = cleaned_data[cleaned_data['target'] == 1]['resting bp s'].std()
-    heart_disease_chol_std = cleaned_data[cleaned_data['target'] == 1]['cholesterol'].std()
-    no_heart_disease_bp_std = cleaned_data[cleaned_data['target'] == 0]['resting bp s'].std()
-    no_heart_disease_chol_std = cleaned_data[cleaned_data['target'] == 0]['cholesterol'].std()
+    heart_disease_bp_std = cleaned_data[cleaned_data['target'] == "Heart risk"]['resting bp s'].std()
+    heart_disease_chol_std = cleaned_data[cleaned_data['target'] == "Heart risk"]['cholesterol'].std()
+    no_heart_disease_bp_std = cleaned_data[cleaned_data['target'] == "Normal"]['resting bp s'].std()
+    no_heart_disease_chol_std = cleaned_data[cleaned_data['target'] == "Normal"]['cholesterol'].std()
 
     print('\n')
     # Print the standard deviation
@@ -226,15 +226,11 @@ def analyze_ecg_results(cleaned_data):
     """
     ecg = cleaned_data['resting ecg']
     ecg_counts = ecg.value_counts()
-    ecg_labels = {'Normal': 0, 'Abnormality in ST-T wave': 1, 'Left ventricular hypertrophy': 2}
-    # ecg_counts.rename(index=ecg_labels, inplace=True)
     
     print("\nResting electrocardiogram distribution:")
     print(ecg_counts)
     
     ecg_by_target = cleaned_data.groupby(['resting ecg', 'target']).size().reset_index(name='count')
-    ecg_by_target['Resting ecg'] = ecg_by_target['resting ecg'].map(ecg_labels)
-    ecg_by_target['resting ecg'] = ecg_by_target['resting ecg'].map(ecg)
     ecg_by_target['target'] = ecg_by_target['target']
     
     print("\nResting electrocardiogram by target:")
@@ -323,7 +319,7 @@ def correlation_matrix(data):
     plt.title('Correlation Matrix')
     plt.show()
 
-def feature_importance(data, k):
+def feature_importance(data, k=5):
     """ 
     Use SelectKBest feature selection technique to identify the k most important
     features that are highly correlated with the target variable.
@@ -335,7 +331,6 @@ def feature_importance(data, k):
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
     X = pd.DataFrame(X, columns=data.columns[:-1])
-
 
     if k > len(X.columns):
         print(f"Error: The maximum value for k is {len(X.columns)}")
@@ -356,6 +351,7 @@ def feature_importance(data, k):
     # Print the top k features with their scores and p-values
     print(f'Top {k} features:')
     print(feature_scores.head(k))
+
 
 def clustering_analysis(data, n_clusters):
     """
